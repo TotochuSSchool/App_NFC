@@ -63,9 +63,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Lance la lecture NFC en activant le foreground dispatch.
-     */
+    
     private fun startNfcScan() {
         showDialog = true
         val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -84,14 +82,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Traite le tag NFC (IsoDep) :
-     * 1. Sélection du fichier certificat et lecture via READ BINARY.
-     * 2. Parsing du certificat et vérification de sa signature via le CSCA.
-     * 3. Calcul de l’empreinte de la clé publique.
-     * 4. Lecture des données personnelles (état‑civil, etc.) via un autre fichier.
-     * Pour chaque commande, la réponse APDU est convertie en hexadécimal et ajoutée à un log affiché.
-     */
+    
     private fun processNfcTag(tag: Tag) {
         val isoDep = IsoDep.get(tag)
         isoDep?.use { dep ->
@@ -182,9 +173,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Envoie une commande APDU via IsoDep et retourne la réponse.
-     */
+    
     private fun sendApduCommand(isoDep: IsoDep, command: ByteArray): ByteArray? {
         return try {
             isoDep.transceive(command)
@@ -194,24 +183,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Vérifie que la réponse APDU se termine par 0x90 0x00.
-     */
+    
     private fun isResponseSuccess(response: ByteArray?): Boolean {
         return response != null && response.size >= 2 &&
                 response[response.size - 2] == 0x90.toByte() &&
                 response[response.size - 1] == 0x00.toByte()
     }
 
-    /**
-     * Extension pour convertir un ByteArray en chaîne hexadécimale.
-     */
+    
     private fun ByteArray.toHexString(): String =
         joinToString(separator = " ") { String.format("%02X", it) }
 
-    /**
-     * Parse un certificat encodé en DER en objet X509Certificate.
-     */
+    
     private fun parseCertificate(certBytes: ByteArray): X509Certificate? {
         return try {
             val cf = CertificateFactory.getInstance("X.509")
@@ -223,9 +206,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Vérifie le certificat lu depuis la carte en s’assurant qu’il est signé par le certificat CSCA.
-     */
+    
     private fun verifyCertificate(cert: X509Certificate): Boolean {
         return try {
             val cscaCert = loadCSCACertificate()
@@ -237,19 +218,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Charge le certificat CSCA depuis le fichier res/raw/csca.crt.
-     */
+    
     private fun loadCSCACertificate(): X509Certificate {
         val inputStream = resources.openRawResource(R.raw.csca)
         val cf = CertificateFactory.getInstance("X.509")
         return cf.generateCertificate(inputStream) as X509Certificate
     }
 
-    /**
-     * Calcule l’empreinte SHA-256 de la clé publique du certificat.
-     * Renvoie une chaîne hexadécimale en majuscules.
-     */
+    
     private fun computePublicKeyFingerprint(cert: X509Certificate): String {
         return try {
             val pubKeyEncoded = cert.publicKey.encoded
@@ -262,9 +238,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Compare l’empreinte calculée avec la clé imprimée saisie par l’utilisateur.
-     */
+    
     private fun verifyPrintedKey() {
         val expected = computedFingerprint?.uppercase(Locale.getDefault()) ?: ""
         val printed = printedKey.text.trim().toString().uppercase(Locale.getDefault())
