@@ -13,6 +13,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,76 +40,36 @@ class MainActivity : ComponentActivity() {
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         setContent {
             NFCTheme {
-                NFCReplicationScreen(
-                    onNfcScan = { startNfcScan() },
-                    showDialog = showDialog,
-                    onDismissDialog = { showDialog = false }
-                )
+                AppNavigation()
             }
-        }
-    }
-
-    private fun startNfcScan() {
-        showDialog = true
-        val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
-        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        if (NfcAdapter.ACTION_TECH_DISCOVERED == intent.action) {
-            val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
-            tag?.let {
-                processNfcTag(it)
-                showDialog = false
-            }
-        }
-    }
-
-    private fun processNfcTag(tag: Tag) {
-        val isoDep = IsoDep.get(tag)
-        isoDep?.use {
-            it.connect()
-            val command = byteArrayOf(0x00, 0xA4.toByte(), 0x02, 0x0C, 0x02, 0x00, 0x7F.toByte())
-            val response = it.transceive(command)
-            val isValid = verifySignature(response)
-            runOnUiThread {
-                showToast(if (isValid) "Carte authentique" else "Carte falsifiée")
-            }
-        }
-    }
-
-    private fun verifySignature(data: ByteArray): Boolean {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(data)
-        return Arrays.equals(hash, getExpectedSignature())
-    }
-
-    private fun getExpectedSignature(): ByteArray {
-        return byteArrayOf( /* Signature officielle du gouvernement */ )
-    }
-
-    private fun showToast(message: String) {
-        runOnUiThread {
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         }
     }
 }
 
 @Composable
-fun NFCReplicationScreen(onNfcScan: () -> Unit, showDialog: Boolean, onDismissDialog: () -> Unit) {
-    var recordName by remember { mutableStateOf(TextFieldValue("")) }
+fun AppNavigation() {
+    var selectedScreen by remember { mutableStateOf("Accueil") }
 
     Scaffold(
         bottomBar = {
-            BottomAppBar(containerColor = Color.Gray) {
-                Text(
-                    text = "Nav Bar Bottom",
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            NavigationBar {
+                NavigationBarItem(
+                    selected = selectedScreen == "Accueil",
+                    onClick = { selectedScreen = "Accueil" },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Accueil") },
+                    label = { Text("Accueil") }
+                )
+                NavigationBarItem(
+                    selected = selectedScreen == "Enregistrement",
+                    onClick = { selectedScreen = "Enregistrement" },
+                    icon = { Icon(Icons.Default.Edit, contentDescription = "Enregistrement") },
+                    label = { Text("Enregistrement") }
+                )
+                NavigationBarItem(
+                    selected = selectedScreen == "Informations",
+                    onClick = { selectedScreen = "Informations" },
+                    icon = { Icon(Icons.Default.Info, contentDescription = "Informations") },
+                    label = { Text("Informations") }
                 )
             }
         }
@@ -116,45 +80,73 @@ fun NFCReplicationScreen(onNfcScan: () -> Unit, showDialog: Boolean, onDismissDi
                 .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
+            verticalArrangement = Arrangement.Center
         ) {
-            TextField(
-                value = recordName,
-                onValueChange = { recordName = it },
-                label = { Text("Nom de l'enregistrement") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Button(
-                onClick = onNfcScan,
-                modifier = Modifier
-                    .size(150.dp)
-                    .background(Color.Blue, shape = CircleShape),
-                shape = CircleShape
-            ) {
-                Text("🚀", fontSize = 36.sp, color = Color.White)
+            when (selectedScreen) {
+                "Accueil" -> NFCReplicationScreen()
+                "Enregistrement" -> RegistrationScreen()
+                "Informations" -> InformationScreen()
             }
         }
+    }
+}
 
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = onDismissDialog,
-                title = { Text("Lecture NFC en cours") },
-                text = { Text("Veuillez approcher la carte d'identité du lecteur NFC.") },
-                confirmButton = {
-                    Button(onClick = onDismissDialog) {
-                        Text("OK")
-                    }
-                }
-            )
+@Composable
+fun NFCReplicationScreen() {
+    var recordName by remember { mutableStateOf(TextFieldValue("")) }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceEvenly
+    ) {
+        TextField(
+            value = recordName,
+            onValueChange = { recordName = it },
+            label = { Text("Nom de l'enregistrement") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = { /* Logique de scan NFC */ },
+            modifier = Modifier
+                .size(150.dp)
+                .background(Color.Blue, shape = CircleShape),
+            shape = CircleShape
+        ) {
+            Text("🚀", fontSize = 36.sp, color = Color.White)
         }
+    }
+}
+
+@Composable
+fun RegistrationScreen() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Liste des pièces d'identité")
+        Text("1 - Validé")
+        Text("2 - Non validé")
+    }
+}
+
+@Composable
+fun InformationScreen() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Cette application permet de scanner et vérifier l'authenticité des pièces d'identité via NFC.")
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun NFCReplicationScreenPreview() {
+fun AppNavigationPreview() {
     NFCTheme {
-        NFCReplicationScreen(onNfcScan = {}, showDialog = false, onDismissDialog = {})
+        AppNavigation()
     }
 }
